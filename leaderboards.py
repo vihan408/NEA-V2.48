@@ -3,9 +3,11 @@ import psycopg2
 import flet
 import time
 from dotenv import load_dotenv
+# This will be used to find out what the current year is when the event form is submitted.
 from datetime import date
 from login import login as login_page 
-
+# This will import all of the libraries that will be used in the solution. This is neccessary for creating the GUI via flet, connecting and talking to my database via psycopg2 and using os and dotenv to load and use the credentials(allows me to connect to my database) to my database as well as the keyword for my login system.
+# This also imports the login system from login.py that will be called when a user tries to click the event from entry or admin button for the first time.
 load_dotenv()
 
 def main(page):
@@ -14,12 +16,13 @@ def main(page):
                               user = os.getenv("dbUser"),
                               password = os.getenv("dbPassword"),
                               port = os.getenv("dbPort"))
-
+# This establishes a connection to my database using the credentials stored in my dot env. (They have been stored in my dot env so that my real credentials cannot be found in the source code maintaining security)
     cursor = connection.cursor()
+    # cursor will be used to execute queries on the database.
     page.scroll = None
     def create_leaderboard(houseANDpoints):
         page.add(
-            # Creates a leaderboard on screen displaying information from the database.
+            # Creates a leaderboard on screen displaying the position, the house and the points for that respective house, retrieved from the database which is passed in as a list houseANDpoints
             flet.DataTable(
                 columns = [
                     flet.DataColumn(flet.Text("Rank")),
@@ -73,42 +76,59 @@ def main(page):
             )
         )
     def bubbleSort(array):
+        # This is a bubble sort that will sort the list given to it but, when swapping items it swaps 4 items rather than 2 as both the house and the points that house has must be swapped.
         length = len(array)
+        # swaps counts how many swaps happen, initialise to 1 so that it can enter the while loop and iterate through the list.
         swaps = 1
         while swaps != 0 :
             swaps = 0
+            # resets swaps back to 0 at the start of each pass
             for i in range (1,length-2,2):
                 if array[i]<array[i+2]:
+                    # compares the points of the current house and the points of the next house via going forward 2 indexes in the list
                     temp = array[i]
                     tempHouse = array[i-1]
+                    # Creates 2 temporary place holders so that the house names and house points can be swapped.
                     array[i] = array[i+2]
                     array[i+2] = temp
                     array[i-1] = array[i+1]
                     array[i+1] = tempHouse
+                    # Swap is now complete
                     swaps += 1
+                    # The number of swaps is incremented by 1
         return array
+        # Sorted list is returned
     def timeToSeconds(t):
+        # Function to convert the data received in a specific format into just seconds
       t = str(t)
       if ":" in t:
           parts = t.split(":")
+          # Seperates the minutes and the seconds
           return int(parts[0]) * 60 + float(parts[1])
+          # Multiplies the first part or the minutes part by 60 and adds it to the second part or the seconds part. Returns this value which is now converted the min:secs format to just a time in seconds only.
       else:
+          # if the function was accidentally called and the time supplied was just in seconds(so did not need to call this function in the first place) then no proccessing needs to occur, just returns the value that was input.
         return float(t)
     def secondsToDisplay(s):
+        # Function to convert raw seconds back into minutes and seconds
         s = float(s)                                                                                                                              
         if s >= 60:
-            mins = int(s // 60)
-            secs = int(s % 60)
-            return f"{mins}:{secs:02d}"
+            mins = int(s // 60) # divide by 60 to get the number of minutes
+            secs = int(s % 60) # find remainder when dividing by 60 to get the number of seconds
+            return f"{mins}:{secs:02d}" # returns min:secs but the secs part is to 2 decimal places
         else:
             return str(round(s, 2))
+            # if s is less than 60 hence 0 minutes and n seconds then no proccessing is needed, this simply returns s to 2 dp.
     def select_event(event_name):
         # Function to select the point each house got in a certain event specified by event_name
         cursor.execute("SELECT points FROM bridges_events WHERE event = %s", (event_name,))
         bridgespoint = cursor.fetchone()
+        # selects how bridges did in that specific event
         if bridgespoint is None:
+            # validation check, if nothing was selected that means that the event does not exist. 
             return None
         else:
+            # select each house's respective point score for that event and stores it to a variable
             bridgespoint = bridgespoint[0]
             cursor.execute("SELECT points FROM carew_events WHERE event = %s", (event_name,))
             carewpoint = cursor.fetchall()
@@ -125,10 +145,11 @@ def main(page):
             cursor.execute("SELECT points FROM woodcote_events WHERE event = %s", (event_name,))
             woodcotepoint = cursor.fetchall()
             woodcotepoint = woodcotepoint[0][0]
-            # Put all the fetched data paired with their respective house into a list that is much more easily proccessable. 
+            # Put all the fetched data paired with their respective house into a list so that is much easier to handle using the bubbleSort function later on. 
             houseANDpoint = ["Bridges", bridgespoint, "Carew", carewpoint, "Mandeville", mandevillepoint, "Radcliffe", radcliffepoint, "Ruskin", ruskinpoint, "Woodcote", woodcotepoint]
             return houseANDpoint
     def dropdownform(e):
+        # This function is called to display on screen many many buttons which are labelled as one of the many events. 
         page.controls.clear()
         page.scroll = None
         def getoptions():
@@ -137,12 +158,14 @@ def main(page):
             for i in range(0, len(house_events)):
                 OPTIONS.append(house_events[i][0])
             return OPTIONS
+            # This retrieves all the events that are going to be displayed on screen as buttons and takes them out of the previous tuple format and appends them to a new list which is then returned
         dropdownoptions = getoptions()
+        # This returned list is saved by the identifier dropdownoptions
         for i in range(0,len(dropdownoptions),3):
             page.add(
                 flet.Row(
                     controls = [
-                        # Display row with 3 event buttons
+                        # Adds a row with 3 event buttons onto the screen iteratively.
                         flet.ElevatedButton(text = dropdownoptions[i], on_click = eventClicked),
                         flet.ElevatedButton(text = dropdownoptions[i+1], on_click = eventClicked),
                         flet.ElevatedButton(text = dropdownoptions[i+2], on_click = eventClicked)
@@ -194,7 +217,7 @@ def main(page):
         # This selects and sums all of the points column in the woodcote_events table.
         #Must implement bubble sort using every other index of the array as these will be integers which are the cumulative scores of each house and houses must be ordered based on cumulative. Therefore using step in the for loop for this specific implementation of bubble sort.
         houseANDpoints = ["Bridges", bridgespoints, "Carew", carewpoints, "Mandeville", mandevillepoints, "Radcliffe", radcliffepoints, "Ruskin", ruskinpoints, "Woodcote", woodcotepoints]
-        houseANDpoints = bubbleSort(houseANDpoints)
+        houseANDpoints = bubbleSort(houseANDpoints) # sorts the list so that it can now be passed into the create_leaderboard function as the function will assume that 1st position is the first house in the list 2 position is the second house in the list etc...
         create_leaderboard(houseANDpoints)
         backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = leaderboardpage) # Creates a button that allows user to go back to the previous page
         page.add(
@@ -202,6 +225,7 @@ def main(page):
         )
         page.update()
     def IERclicked(e):
+        #When the individual event results button is clicked this function is called, which by calling other functions will eventually display on screen a list of buttons that represent every single normal Cock House Cup event and when any of the buttons are clicked the respective individual leaderboard for that event will be displayed.
         page.controls.clear()
         page.scroll = None
         page.vertical_alignment = flet.MainAxisAlignment.CENTER
@@ -213,10 +237,12 @@ def main(page):
         house_events = cursor.fetchall()
         dropdownform(e)
     def eventClicked(e):
+        # This is the function called when any of the individual event results buttons from the dropwdown function are clicked.
         page.controls.clear()
         page.scroll = None
-        leaderboard_data = select_event(e.control.text)
+        leaderboard_data = select_event(e.control.text) # selects the result for the event via taking the label/text displayed on the button - which is the event's name
         if leaderboard_data is None:
+            #Validation check - presence check. The database will be searched for the result of this event but if the result does not exist, indicated by the "None" value then the event has not taken place yet as no results for it have been entered. The user should be notified of this:
             page.add(
                 flet.Text(value = "This event has not taken place yet!"),
                 flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = dropdownform) # Creates a button that allows user to go back to the previous page
@@ -229,6 +255,7 @@ def main(page):
             )
         page.update()
     def athleticsButtonClicked(e):
+        # This is the function called when the View Top 3 of any event button is clicked. This function will select and display the top 3 athletes of every sports day event that has a result.
         page.controls.clear()
         page.scroll = None
         page.update()
@@ -237,26 +264,34 @@ def main(page):
         page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
         Rows = []
         for i in range(1,57):
+            # Selects all of the time based results 1 by 1 row by row iteratively
+            # The table has a column called row order which is used to order the rows in a logical sequence, like all year 7 events should be retrieved and displayed first before year 8 events and so on.
             select = """SELECT "event", "player_bridges", "player_bridges_time", "player_carew", "player_carew_time", "player_mandeville", 
             "player_mandeville_time", "player_radcliffe", "player_radcliffe_time", "player_ruskin", "player_ruskin_time", 
             "player_woodcote", "player_woodcote_time"
                         FROM sports_day_times
                         WHERE row_order = %s; """
             cursor.execute(select, (i,))
+            #executes the query and retrieves the result
             temp = cursor.fetchone()
             if None in temp:
+                # This is when the event does not have a result, so no extra formatting needs to be done and the fetched data can be added to the list.
                 templistready = []
                 for i in range(1,7):
                     templistready.append(temp[i])
             else:
+                # When there is a result for the event then need to make sure that the time is in only seconds
                 templist = []
                 for i in range(1, len(temp)-1,2):
                     templist.append(temp[i])
-                    templist.append(timeToSeconds(temp[i+1]))
-                templist = bubbleSort(templist)
+                    templist.append(timeToSeconds(temp[i+1]))# the data fetched is converted into only seconds
+                    # adds the athlete name and the athlete's score to templist
+                templist = bubbleSort(templist) # sorts the athletes and their respective so that the top 3 can be extracted.
                 templistready = []
                 for i in range(0, 6):
+                    # adds the top 3 which are at the end of the sorted list to another list which now contains only the neccessary data.
                     templistready.append(templist[11-i])
+                # adds the top 3 athletes with their respective times to a list called Rows which has the nice and formatted top 3 athlete data
                 Rows.append(
                     flet.DataRow(
                         cells = [
@@ -292,26 +327,33 @@ def main(page):
                     )
                 )
         for i in range(1,42):
+            # Selects all of the time based results 1 by 1 row by row iteratively
+            # The table has a column called row order which is used to order the rows in a logical sequence, like all year 7 events should be retrieved and displayed first before year 8 events and so on.
             select = """SELECT "event", "player_bridges", "player_bridges_distance", "player_carew", "player_carew_distance", "player_mandeville", 
             "player_mandeville_distance", "player_radcliffe", "player_radcliffe_distance", "player_ruskin", "player_ruskin_distance", 
             "player_woodcote", "player_woodcote_distance"
                         FROM sports_day_distances
                         WHERE row_order = %s; """
             cursor.execute(select, (i,))
+            #executes the query and retrieves the result
             temp = cursor.fetchone()
             if None in temp or "" in temp:
+                # when there is no result for the event no formatting or processing needs to be done hence added straightaway to templistready.
                 templistready = []
                 for i in range(1,7):
                     templistready.append(temp[i])
             else:
+                # when there is a result:
                 templist = []
                 for i in range(1, len(temp)-1,2):
                     templist.append(temp[i])
                     templist.append(float(temp[i+1]))
-                templist = bubbleSort(templist)
+                    # adds the athlete name and the athlete's score to templist
+                templist = bubbleSort(templist) #sorts the list so that the top 3 are now the first few indexes
                 templistready = []
                 for i in range(0, 6):
                     templistready.append(templist[i])
+                # adds the top 3 athletes with their respective times to a list called Rows which has the nice and formatted top 3 athlete data
                 Rows.append(
                     flet.DataRow(
                         cells = [
@@ -346,27 +388,30 @@ def main(page):
                         ]
                     )
                 )
+        # Creates a table that will be used to display the top 3 atheletes of every event
         athleticstable = flet.DataTable(
             columns = [
+                # defines all the columns that will be in the table
                 flet.DataColumn(flet.Text("Event")),
                 flet.DataColumn(flet.Text("1st")),
                 flet.DataColumn(flet.Text("2nd")),
                 flet.DataColumn(flet.Text("3rd"))
             ],
-            rows = Rows
+            rows = Rows # The list that contains all the relevant data with the nice formatting is now assigned to the tables rows.
         )
         page.add(flet.Text(value = "Top 3 in each event!", color = "red", size = 100))
         page.add(flet.Text(value = "For events that have not occured yet the top 3 for that event will not be displayed!", color = "Blue", size = 20))
         page.add(
             flet.Column(
                 controls = [athleticstable],
-                scroll = "auto",
+                scroll = "auto", # allows the table to be scrollable as all the results of all 100ish events probably can't fit on the screen
                 expand = True
             )
         ) 
-        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = SDRclicked)
+        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = SDRclicked) # Creates a back button that when clicked leads the user back to the previous page.
         page.add(backButton)
     def recordtable(e):
+        # This is the function called when the WCGS Athletics Records button is clicked, which will be used to display a table containing all of the WCGS records for the sports day events.
         page.controls.clear()
         page.scroll = None
         page.update()
@@ -377,41 +422,48 @@ def main(page):
                         FROM "school_records"
                         ORDER BY "row_order" ASC """
         cursor.execute(selectyear7)
+        # selects all of the year 7 athletics records and stores them
         datayear7 = cursor.fetchall()
 
         selectyear8 = """SELECT "year8player", "year8time", "year8date"
                         FROM "school_records"
                         ORDER BY "row_order" ASC  """
         cursor.execute(selectyear8)
+        # selects all of the year 8 athletics records and stores them
         datayear8 = cursor.fetchall()
 
         selectyear9 = """SELECT "year9player", "year9time", "year9date"
                         FROM "school_records"
                         ORDER BY "row_order" ASC  """
         cursor.execute(selectyear9)
+        # selects all of the year 9 athletics records and stores them
         datayear9 = cursor.fetchall()
 
         selectyear10 = """SELECT "year10player", "year10time", "year10date"
                         FROM "school_records"
                         ORDER BY "row_order" ASC  """
         cursor.execute(selectyear10)
+        # selects all of the year 10 athletics records and stores them
         datayear10 = cursor.fetchall()
 
         selectsenior = """SELECT "seniorplayer", "seniortime", "seniordate"
                         FROM "school_records"
                         ORDER BY "row_order" ASC  """
         cursor.execute(selectsenior)
+        # selects all of the senior athletics records and stores them
         datasenior = cursor.fetchall()
 
         selectgirls = """SELECT "girlsplayer", "girlstime", "girlsdate"
                         FROM "school_records"
                         ORDER BY "row_order" ASC  """
         cursor.execute(selectgirls)
+        # selects all of the girls athletics records and stores them
         datagirls = cursor.fetchall()
 
 
         recordstable = flet.DataTable(
             columns = [
+                # defines all the columns that will be in the table
                 flet.DataColumn(flet.Text("Event")),
                 flet.DataColumn(flet.Text("Year 7")),
                 flet.DataColumn(flet.Text("Year 8")),
@@ -421,6 +473,7 @@ def main(page):
                 flet.DataColumn(flet.Text("Girls"))
             ],
             rows = [
+                # Creates a row containing all the records for each age category for the 100m event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("100m")),
@@ -486,6 +539,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the 200m event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("200m")),
@@ -551,6 +605,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the 300m event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("300m")),
@@ -616,6 +671,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the 400m event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("400m")),
@@ -681,6 +737,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the 800m event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("800m")),
@@ -746,6 +803,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the 1500m event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("1500m")),
@@ -811,6 +869,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the 200m Relay event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("200m Relay")),
@@ -876,6 +935,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the Triple Jump event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("Triple Jump")),
@@ -941,6 +1001,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the Long Jump event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("Long Jump")),
@@ -1006,6 +1067,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the High Jump event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("High Jump")),
@@ -1071,6 +1133,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the Discus event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("Discus")),
@@ -1136,6 +1199,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the Shotput event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("Shotput")),
@@ -1201,6 +1265,7 @@ def main(page):
                         )),
                     ]
                 ),
+                # Creates a row containing all the records for each age category for the Javelin event
                 flet.DataRow(
                     cells = [
                         flet.DataCell(flet.Text("Javelin")),
@@ -1273,21 +1338,25 @@ def main(page):
         page.add(
             flet.Column(
                 controls = [recordstable],
-                scroll = "auto",
+                scroll = "auto", # allows the table to be scrollable as the whole table will not be able to fit on the page.
                 expand = True
             )
         ) 
-        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = SDRclicked) 
+        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = SDRclicked) # creates a back button that when clicked will lead the user back to the previous page.
         page.add(backButton)
     def SDRclicked(e):
+        # This function is called when the sports day results button is clicked.
+        # This function displays another set of buttons that allow the user to view different aspects of sports day like the overall standings for example and much more!
         page.controls.clear()
         page.scroll = None
         page.vertical_alignment = flet.MainAxisAlignment.CENTER
         page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
+        # Creates 4 different buttons each for different features to do with sportsday
         overall_leaderboardSD = flet.ElevatedButton(text = "Overall sports day leaderboard", width = 400, height = 100, on_click = OSDLButtonClicked)
         individual_LeaderboardSD = flet.ElevatedButton(text = "Individual sports day leaderboards", width = 400, height = 100, on_click = ISDLclicked)
         athleticsButton = flet.ElevatedButton(text = "View Top 3 of all Sports Day Events", width = 300, height = 100, on_click = athleticsButtonClicked)
         recordsButton = flet.ElevatedButton(text = "WCGS Athletics Records", width = 300, height = 100, on_click = recordtable)
+        # Adds them to the page in a nice visually appealing format.
         page.add(
             flet.Column(
                 [
@@ -1315,8 +1384,11 @@ def main(page):
         )
         page.update()
     def ISDLclicked(e):
+        # This function is called when the individual sports day leaderboard button is clicked
+        # Using this function the user will be able to search for and view the individual standings of the event they search for via this function.
         page.scroll = None
         def sportsDaySearch(e):
+            # retrieve the user's input for what event they want to see the result of:
             userinput = sportsDaySearchBar.value
             selectedEvent = ""
             for i in range(0,len(sportsDayEventsCleaned)):
