@@ -3,6 +3,7 @@ import psycopg2
 import flet
 import time
 from dotenv import load_dotenv
+# This will import all of the libraries that will be used in the solution. This is neccessary for creating the GUI via flet, connecting and talking to my database via psycopg2 and using os and dotenv to load and use the credentials(allows me to connect to my database) to my database as well as the keyword for my login system.
 
 load_dotenv()
 
@@ -12,13 +13,16 @@ def login(page, on_success = None, on_back = None):
                               user = os.getenv("dbUser"),
                               password = os.getenv("dbPassword"),
                               port = os.getenv("dbPort"))
-
+# This establishes a connection to my database using the credentials stored in my dot env. (They have been stored in my dot env so that my real credentials cannot be found in the source code maintaining security)
     cursor = connection.cursor()
+    # cursor will be used to execute queries on the database.
     page.theme_mode= flet.ThemeMode.DARK
     page.vertical_alignment = flet.MainAxisAlignment.CENTER
     page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
     def createAccount(e):
+        #This function is called when the user decides to create an account. 
         page.session.set("createAccountClicked", True)
+        # This is used so that I can recognise in the system that the user has decided to create an account and hence should be led to this page.
         def registerAccount(e):
             insert = """INSERT INTO "userlogins" ("usernames", "userpassword") 
                         VALUES (%s, %s);"""
