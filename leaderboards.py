@@ -1388,22 +1388,30 @@ def main(page):
         # Using this function the user will be able to search for and view the individual standings of the event they search for via this function.
         page.scroll = None
         def sportsDaySearch(e):
+            # This function is used to search and select the individual event results of the sports day event that the user searches for.
             # retrieve the user's input for what event they want to see the result of:
             userinput = sportsDaySearchBar.value
             selectedEvent = ""
+            # Search through the list of sports day events (sportsDayEventsCleaned) and find/select the event that the user has searched for
+            # 
             for i in range(0,len(sportsDayEventsCleaned)):
                 iterateEvent = sportsDayEventsCleaned[i]
                 if userinput.lower() in iterateEvent.lower():
-                    selectedEvent = sportsDayEventsCleaned[i]
-            selectedEventMessage = flet.Text(value = ("You have selected event: " + selectedEvent), visible = False, color = "Green")
+                    # Compared in this way so that the user does not have to type the full event name - this could be quite tedious, instead the user needs to type in enough of the event to uniquely identify it from another event.
+                    selectedEvent = sportsDayEventsCleaned[i] # makes sure that selectedEvent has the same value/name of the event as the database does that way the selection of that event's result is much smoother.
+            # Create and add a message letting the user know what event they have selected as a result of the input they have entered in the searchbar.
+            selectedEventMessage = flet.Text(value = ("You have selected event: " + selectedEvent), visible = False, color = "Green")# set to false for now since, I first need to check that an event has been selected - selectedEvent therefore would have a value.
             page.add(selectedEventMessage)
             if selectedEvent == "":
-                errorMessage.visible = True
+                # if selectedEvent does not have a value, then nothing was written to the variable hence no matches for the user's input were found meaning that the user's input was an invalid input and hence toggling the error message's visibility to true will let the user know to try again.                errorMessage.visible = True
                 selectedEventMessage.visible = False
-                page.update()
-                return
+                page.update()# refreshes the page so that the message can be seen
+                return # stops the function here so that the next instructions of selecting from the database do not occur as I would be executing select * from table where event = "".
+                # the where clause will never find a match and hence return none and when later these fetched results are used, doing processing with the none value will cause errors.
+                # this in some sense is another form of a validation check - presence check, making sure that selectedEvent has a value before executing SQL select.
             else:
-                selectedEventMessage.visible = True
+                # if selectedEvent does have a value that means a match for the user's input was found and so the results for that event will now be retrieved from the database.
+                selectedEventMessage.visible = True # Lets the user know which event what event they have selected by toggling the visibility of the message to true then updating/refreshing the page
                 errorMessage.visible = False
                 page.update()
             page.update()
@@ -1411,81 +1419,98 @@ def main(page):
                                 FROM "sports_day_events"
                                 WHERE "event" = %s;  """
             cursor.execute(selectPoints, (selectedEvent,))
+            # selects all the house's respective points for the event 
             points = cursor.fetchall()
             houseANDpoints = ["Bridges", 0, "Carew", 0, "Mandeville", 0, "Radcliffe", 0, "Ruskin", 0, "Woodcote", 0]
             for i in range(1, 7):
+                # Iteratively adds all the respective points for each house to the list houseANDpoints
                 houseANDpoints[(2*i)-1] = points[0][i-1]
-            bubbleSort(houseANDpoints)
+            bubbleSort(houseANDpoints) # sorts the list
             page.controls.clear()
             page.update()
-            page.add(flet.Text(selectedEvent, color = "Red", size = 50))
-            create_leaderboard(houseANDpoints)
-            back = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = ISDLclicked)
+            page.add(flet.Text(selectedEvent, color = "Red", size = 50))# displays at the top of the page the event name
+            create_leaderboard(houseANDpoints) # creates a leaderboard displaying the fetched results
+            back = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = ISDLclicked) # creates a button that leads the user back to the previous page
             page.add(back)
         page.controls.clear()
         page.update()
+        #select all of the possible events that sports day could have via:
         select_sports_day_events = """SELECT "event" FROM "sports_day_events";  """
         cursor.execute(select_sports_day_events)
         global sportsDayEvents
         sportsDayEvents = cursor.fetchall()
+        # fetches and stores these results to a list, but currently in tuple format, need to convert to a plain list format via:
         sportsDayEventsCleaned = []
         for i in range(0, len(sportsDayEvents)):
+            # extract the event name only
             sportsDayEventsCleaned.append(sportsDayEvents[i][0])
-        sportsDaySearchBar = flet.TextField(label = "Enter event you would like to see the leaderboard for...")
+        sportsDaySearchBar = flet.TextField(label = "Enter event you would like to see the leaderboard for...") # creates a searchbar for the user to input what event they would like to see the result of.
         page.add(sportsDaySearchBar)
-        SUBMIT = flet.ElevatedButton(text = "Search", on_click = sportsDaySearch, width = 150, height = 60)
+        SUBMIT = flet.ElevatedButton(text = "Search", on_click = sportsDaySearch, width = 150, height = 60) # creates a submit button for when the user is done entering the input for what event they want to see the result of.
         page.add(SUBMIT)
-        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = SDRclicked)
+        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = SDRclicked) # creates a back button that leads the user back to the previous page
         page.add(backButton)
         selectedEvent = ""
-        selectedEventMessage = flet.Text(value = ("You have selected event: " + selectedEvent), visible = False, color = "green")
-        errorMessage = flet.Text("Please enter an actual event!", visible = False, color = "Red")
+        selectedEventMessage = flet.Text(value = ("You have selected event: " + selectedEvent), visible = False, color = "green") # creates a message that lets the user know what event they have selected
+        errorMessage = flet.Text("Please enter an actual event!", visible = False, color = "Red")# creates an error message that prompts the user to try again when no match is found for their input
+        # visibility is set to false for both messages, since only one message should appear on the screen at a time which would be decided by whether or not the selectedEvent variable is given a value. If yes then visibility of selectedEventMessage will be set to true and vice versa.
         page.add(selectedEventMessage)
         page.add(errorMessage)
     def OSDLButtonClicked(e):
+        # This function is called when the Overall Sports day Leaderboard button is clicked
         page.controls.clear()
         page.scroll = None
         page.vertical_alignment = flet.MainAxisAlignment.CENTER
         page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
         page.update()
+        # select the total amount of points bridges has acquired over sports day and store them for later
         selectbridgespoints = """SELECT sum(bridgespoints)
                             FROM "sports_day_events";"""
         cursor.execute(selectbridgespoints)
         bridgespoints = cursor.fetchone()
         bridgespoints = bridgespoints[0]
+        # select the total amount of points carew has acquired over sports day and store them for later
         selectcarewpoints = """SELECT sum(carewpoints)
                             FROM "sports_day_events";"""
         cursor.execute(selectcarewpoints)
         carewpoints = cursor.fetchone()
         carewpoints = carewpoints[0]
+        # select the total amount of points mandeville has acquired over sports day and store them for later
         selectmandevillepoints = """SELECT sum(mandevillepoints)
                             FROM "sports_day_events";"""
         cursor.execute(selectmandevillepoints)
         mandevillepoints = cursor.fetchone()
         mandevillepoints = mandevillepoints[0]
+        # select the total amount of points radcliffe has acquired over sports day and store them for later
         selectradcliffepoints = """SELECT sum(radcliffepoints)
                             FROM "sports_day_events";"""
         cursor.execute(selectradcliffepoints)
         radcliffepoints = cursor.fetchone()
         radcliffepoints = radcliffepoints[0]
+        # select the total amount of points ruskin has acquired over sports day and store them for later
         selectruskinpoints = """SELECT sum(ruskinpoints)
                             FROM "sports_day_events";"""
         cursor.execute(selectruskinpoints)
         ruskinpoints = cursor.fetchone()
         ruskinpoints = ruskinpoints[0]
+        # select the total amount of points woodcote has acquired over sports day and store them for later
         selectwoodcotepoints = """SELECT sum(woodcotepoints)
                             FROM "sports_day_events";"""
         cursor.execute(selectwoodcotepoints)
         woodcotepoints = cursor.fetchone()
         woodcotepoints = woodcotepoints[0]
+        # create a list with these retrieved results
         houseANDpoints = ["Bridges", bridgespoints, "Carew", carewpoints, "Mandeville", mandevillepoints, "Radcliffe", radcliffepoints, "Ruskin", ruskinpoints, "Woodcote", woodcotepoints]
-        houseANDpoints = bubbleSort(houseANDpoints)
-        create_leaderboard(houseANDpoints)
-        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = SDRclicked)
+        houseANDpoints = bubbleSort(houseANDpoints) # sort the list
+        create_leaderboard(houseANDpoints) # create a leaderboard for the results contained within this list
+        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = SDRclicked) # create a button that leads the user to the previous page.
         page.add(backButton)
     def EEBclicked(e):
+        # This function is called when the event entry button is clicked.
+        # This function handles the event forms through which the results are collected.
         page.scroll = None
         def EEBClickedPostLogin():
+            # This page should only be accessible after a successful login.
             page.scroll = None
             page.session.set("logged_in", True)
             page.controls.clear()
@@ -1493,8 +1518,8 @@ def main(page):
             page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
             page.update()
             backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = leaderboardpage) # Creates a button that allows user to go back to the previous page
-            sportsDayButton = flet.ElevatedButton(text = "Sports Day", width = 400, height = 100, on_click = sportsDayButtonClicked)
-            houseEventsButton = flet.ElevatedButton(text = "House Events", width = 400, height = 100, on_click = houseEventsButtonClicked)
+            sportsDayButton = flet.ElevatedButton(text = "Sports Day", width = 400, height = 100, on_click = sportsDayButtonClicked) # Creates a button that when clicked leads the user to the sports day event entry form
+            houseEventsButton = flet.ElevatedButton(text = "House Events", width = 400, height = 100, on_click = houseEventsButtonClicked) # Creates a button that when clicked leads the user to the normal Cock House Cup event entry form
             page.add(
                 sportsDayButton,
                 houseEventsButton
@@ -1503,29 +1528,38 @@ def main(page):
                 backButton
                 )
         if page.session.get("logged_in") == True:
+            # if the user has logged in successfully then call the function above so that the user can select what type of event they want to enter the result of.
             EEBClickedPostLogin()
         else:
+            # if the user is not logged in yet then they will need to login first
             page.controls.clear()
             page.update()
-            login_page(page, on_success= EEBClickedPostLogin, on_back= leaderboardpage)
+            login_page(page, on_success= EEBClickedPostLogin, on_back= leaderboardpage) # calls the login function from login.py which will be used to authenticate the user. 
+            # on_success defines that when the login is successful then EEBClickedPostLogin function should be called
+            # on_back defines that when the user clicks the back button the leaderboardpage function should be called which just leads the user back to the previous page.
     def sportsDayButtonClicked(e):
+        # This is the function for the sports day event form
         page.controls.clear()
         page.session.set("event", "")
+        # Initialises the event variable that will store the event that the user selects. Each instance of the page gets its own personal event via session - this is so that if multiple users interact with this functionality then the different inputs of different users will overwrite each other which is not ideal. Having the personal version of event prevents this.
         page.scroll = flet.ScrollMode.AUTO
         page.vertical_alignment = flet.MainAxisAlignment.CENTER
         page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
         page.theme_mode= flet.ThemeMode.DARK
         page.add(flet.Text(value = "Enter Sports Day Event results", color = "Red", size = 50))
+        # fetch all of the sports day events and store them to the list options which will then contain all the events but in tuple format
         select = """ SELECT event FROM sports_day_events; """
         cursor.execute(select)
         fetch = cursor.fetchall()
         options = fetch
         optionsCleaned = []
         for i in range(0, len(options)):
+            # extracts the event name from the tuple format and adds it to a new "cleaned" list
             optionsCleaned.append(options[i][0])
-        timeEvents = ["100m", "200m", "300m", "400m", "800m", "1500m", "Relay"]
-        distanceEvents = ["Javelin", "Discus", "Shotput", "Long Jump", "Triple Jump", "High Jump"]
+        timeEvents = ["100m", "200m", "300m", "400m", "800m", "1500m", "Relay"] # identifiers/keywords that identify the event to be time based
+        distanceEvents = ["Javelin", "Discus", "Shotput", "Long Jump", "Triple Jump", "High Jump"]# identifiers/keywords that identify the event to be distance based
         def searchBar(optionsCleaned):
+            # Function that creates a search bar for the user to input the event they want to enter the result for.
             def dropdown(e):
                 bpos = bridgesdd.value
                 cpos = carewdd.value
@@ -1534,107 +1568,131 @@ def main(page):
                 rupos = ruskindd.value
                 wpos = woodcotedd.value
                 rank = [bpos, cpos, mpos, rapos, rupos, wpos]
+                # fetches the data input by the user in the dropdown forms which will be the position of each house in the event and adds them to the list ranked
                 if None in rank:
+                    # presence check - if when the values in the dropdown form are retrieved and added to rank, the value none is contained within ranked the user has not entered the positions of the house's completely hence will be prompted to do so by toggling the visibilty of the presencemessage1 to true.
                     presenceMessage1.visible = True
                     page.update()
-                    return
+                    return # prevents the next sequence of instructions from being executed as some of the neccessary data is missing and needs to be input first. 
                 if searchbar.value == "":
+                    # presence check - if when the value in the searchbar is retrieved the value is "" the user has not searched for an event to enter the result for hence will be prompted to do so by toggling the visibilty of the presencemessage0 to true.
                     presenceMessage0.visible = True
                     page.update()
                     return
                 if "Tug of War" not in (page.session.get("event") or ""):
+                    # if the event is not a tug of war event then a list with all the inputted results from the user including player names and times is created
                     list = [bridgesplayer.value, bridgesplayertime.value, carewplayer.value, carewplayertime.value,
                             mandevilleplayer.value, mandevilleplayertime.value, radcliffeplayer.value, radcliffeplayertime.value,
                             ruskinplayer.value, ruskinplayertime.value, woodcoteplayer.value, woodcoteplayertime.value]
                     if None in list or "" in list:
+                        # another presence check to make sure that all the data needed is input by the user, if not the presencemessage2's visibility is toggled to true to prompt the user to enter all the relevant details.
                         presenceMessage2.visible = True
                         page.update()
-                        return
-                colonrequired = ["800m", "1500m", "Relay"]
+                        return # prevents the next sequence of instructions from being executed as some of the neccessary data is missing and needs to be input first. 
+                colonrequired = ["800m", "1500m", "Relay"] # these are the keywords/identifiers for events that need the time to be entered in a specific format.
                 for item in colonrequired:
                     if item in (page.session.get("event") or ""):
+                        # if the event contains one of the keywords from the colon required list then I will need to do a format check to make sure that the time has been entered in the correct format
                         checks = [bridgesplayertime.value, carewplayertime.value, mandevilleplayertime.value, radcliffeplayertime.value, ruskinplayertime.value, woodcoteplayertime.value]
                         for item in checks:
                             if ":" not in item:
-                                colonmessage.visible = True
+                                # checking that there is a colon to seperate the time into min:secs
+                                colonmessage.visible = True # toggles visibility of the error message so that the user is prompted to enter the data in the correct format
                                 page.update()
-                                return
+                                return # prevents the next sequence of instructions from being executed as some of the neccessary data is not in the correct format and needs to be input correctly first. 
                 point = []
                 for i in range(0, len(rank)):
+                    # by taking the position of the houses in the event, the respective amount of points are allocated.
                     point.append(7 - int(rank[i]))
                 if "Relay" in (page.session.get("event") or ""):
+                    # if the event is the relay race then I need to account for the event being weighted so there is a score multiplier of 2 which applied iteratively by doubling the value at each index of the list point
                     for i in range(0, len(point)):
                         point[i] = point[i]*2
-                timebool = False
-                distancebool = False
+                timebool = False # variable to hold whether the event is time based or not
+                distancebool = False # variable to hold whether the event is distance based or not
                 for i in range(0,len(timeEvents)):
                     if timeEvents[i] in (page.session.get("event") or ""):
+                        # Iterates through the list of timebased event identifiers and if the keywords are in the event name then the variable holding whether or not the event is timebased is toggled to true:
                         timebool = True
                 for i in range(0, len(distanceEvents)):
                     if distanceEvents[i] in (page.session.get("event") or ""):
                         distancebool = True
+                        # Iterates through the list of distancebased event identifiers and if the keywords are in the event name then the variable holding whether or not the event is distancebased is toggled to true:
+                # updates/inserts the points for bridges house into the database
                 insertBridges = """UPDATE "sports_day_events"
                                 SET "bridgespoints" = %s
                                 WHERE "event" = %s;"""
                 cursor.execute(insertBridges,(point[0], (page.session.get("event") or "")))
                 connection.commit()
+                # updates/inserts the points for carew house into the database
                 insertCarew = """UPDATE "sports_day_events"
                                 SET "carewpoints" = %s
                                 WHERE "event" = %s;"""
                 cursor.execute(insertCarew,(point[1],(page.session.get("event") or "")))
                 connection.commit()
+                # updates/inserts the points for mandeville house into the database
                 insertMandeville = """UPDATE "sports_day_events"
                                 SET "mandevillepoints" = %s
                                 WHERE "event" = %s;"""
                 cursor.execute(insertMandeville,(point[2],(page.session.get("event") or "")))
                 connection.commit()
+                # updates/inserts the points for radcliffe house into the database
                 insertRadcliffe = """UPDATE "sports_day_events"
                                 SET "radcliffepoints" = %s
                                 WHERE "event" = %s;"""
                 cursor.execute(insertRadcliffe,(point[3],(page.session.get("event") or "")))
                 connection.commit()
+                # updates/inserts the points for ruskin house into the database
                 insertRuskin = """UPDATE "sports_day_events"
                                 SET "ruskinpoints" = %s
                                 WHERE "event" = %s;"""
                 cursor.execute(insertRuskin,(point[4],(page.session.get("event") or "")))
                 connection.commit()
+                # updates/inserts the points for woodcite house into the database
                 insertWoodcote = """UPDATE "sports_day_events"
                                 SET "woodcotepoints" = %s
                                 WHERE "event" = %s;"""
                 cursor.execute(insertWoodcote,(point[5],(page.session.get("event") or "")))
                 connection.commit()
+                # These series of queries update the table in the database that contains only the event name and the number of points each house was awarded in the event. 
+                # I now need to insert the player names and times into either the sports_day_times or sports_day_distances tables based on whether the event is time or distance based.
                 if timebool == True:
+                    # if it is a time based event
                     updateplayerbridges = """UPDATE "sports_day_times"
                                 SET "player_bridges" = %s,
                                     "player_bridges_time" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayerbridges, (bridgesplayer.value, bridgesplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
-                    
+                    # updates/inserts the bridges player's time and name
                     updateplayercarew = """UPDATE "sports_day_times"
                                 SET "player_carew" = %s,
                                     "player_carew_time" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayercarew, (carewplayer.value, carewplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the carew player's time and name
                     updateplayermandeville = """UPDATE "sports_day_times"
                                 SET "player_mandeville" = %s,
                                     "player_mandeville_time" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayermandeville, (mandevilleplayer.value, mandevilleplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the mandeville player's time and name
                     updateplayerradcliffe = """UPDATE "sports_day_times"
                                 SET "player_radcliffe" = %s,
                                     "player_radcliffe_time" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayerradcliffe, (radcliffeplayer.value, radcliffeplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the radcliffe player's time and name
                     updateplayerruskin = """UPDATE "sports_day_times"
                                 SET "player_ruskin" = %s,
                                     "player_ruskin_time" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayerruskin, (ruskinplayer.value, ruskinplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the woodcote player's time and name
                     updateplayerwoodcote = """UPDATE "sports_day_times"
                                 SET "player_woodcote" = %s,
                                     "player_woodcote_time" = %s
@@ -1642,97 +1700,119 @@ def main(page):
                     cursor.execute(updateplayerwoodcote, (woodcoteplayer.value, woodcoteplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
                 if distancebool == True:
+                    # if it is a distance based event
                     updateplayerbridges = """UPDATE "sports_day_distances"
                                 SET "player_bridges" = %s,
                                     "player_bridges_distance" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayerbridges, (bridgesplayer.value, bridgesplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the bridges player's distance and name
                     updateplayercarew = """UPDATE "sports_day_distances"
                                 SET "player_carew" = %s,
                                     "player_carew_distance" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayercarew, (carewplayer.value, carewplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the carew player's distance and name
                     updateplayermandeville = """UPDATE "sports_day_distances"
                                 SET "player_mandeville" = %s,
                                     "player_mandeville_distance" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayermandeville, (mandevilleplayer.value, mandevilleplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the mandeville player's distance and name
                     updateplayerradcliffe = """UPDATE "sports_day_distances"
                                 SET "player_radcliffe" = %s,
                                     "player_radcliffe_distance" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayerradcliffe, (radcliffeplayer.value, radcliffeplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the radcliffe player's distance and name
                     updateplayerruskin = """UPDATE "sports_day_distances"
                                 SET "player_ruskin" = %s,
                                     "player_ruskin_distance" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayerruskin, (ruskinplayer.value, ruskinplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the ruskin player's distance and name
                     updateplayerwoodcote = """UPDATE "sports_day_distances"
                                 SET "player_woodcote" = %s,
                                     "player_woodcote_distance" = %s
                                 WHERE "event" = %s; """
                     cursor.execute(updateplayerwoodcote, (woodcoteplayer.value, woodcoteplayertime.value, (page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the woodcote player's distance and name
                 def split(event):
-                    events = ["100m", "200m", "300m","400m", "800m", "1500m", "Discus", "Shotput", "Long Jump", "High Jump", "Javelin", "Triple Jump", "200m Relay", "Relay"]
-                    ageCat = ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Senior", "Girls"]
-                    eventName = ""
-                    ageCategory = ""
+                    # function to split the event into the event type and age category
+                    events = ["100m", "200m", "300m","400m", "800m", "1500m", "Discus", "Shotput", "Long Jump", "High Jump", "Javelin", "Triple Jump", "200m Relay", "Relay"] # list of event types
+                    ageCat = ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Senior", "Girls"] # list of age categories
+                    eventName = "" # variable to hold the corresponding event
+                    ageCategory = "" # variable to hold the corresponding age category
                     for i in range(0, len(events)):
                         if events[i] in event:
+                            # if the event type is in event then it is stored to eventName
                             eventName = events[i]
                     for i in range(0,len(ageCat)):
                         if ageCat[i] in event:
+                            # if the age category is in the event then it is stored to ageCategory
                             ageCategory = ageCat[i]
                     return eventName, ageCategory
                 if "Tug of War" not in (page.session.get("event") or ""):
-                    splittedEvent = split((page.session.get("event") or ""))
-                    event_name = splittedEvent[0]
-                    age_category = splittedEvent[1]
+                    # if the event is not tug of war
+                    splittedEvent = split((page.session.get("event") or ""))# split the event into its respective event type and age category
+                    event_name = splittedEvent[0] #extract the event type
+                    age_category = splittedEvent[1] # extract the event age category
                     times = [bridgesplayer.value, timeToSeconds(bridgesplayertime.value), carewplayer.value, timeToSeconds(carewplayertime.value), mandevilleplayer.value, timeToSeconds(mandevilleplayertime.value), radcliffeplayer.value, timeToSeconds(radcliffeplayertime.value), ruskinplayer.value, timeToSeconds(ruskinplayertime.value), woodcoteplayer.value, timeToSeconds(woodcoteplayertime.value)]
-                    sortedtimes = bubbleSort(times)
+                    # creates a list with all the player names and their respective times
+                    sortedtimes = bubbleSort(times) # sorts this list
                     if timebool == True:
+                        # taking 1st place - last 2 indexes so that I can check whether a record has been broken
                         recordcheck = sortedtimes[len(sortedtimes)-1]
                         recordcheckplayer = sortedtimes[len(sortedtimes)-2]
                     if distancebool == True:
+                        # taking 1st place - first 2 indexes so that I can check whether a record has been broken 
                         recordcheck = sortedtimes[1]
                         recordcheckplayer = sortedtimes[0]
                     ageCategories = ["Year 7", "Year 8", "Year 9", "Year 10", "Senior", "Girls"]
+                    # in the table in the database, the column names are similiar but not exactly the age category. I need to translate the fact that the year7 agecategory means updating the year7time, year7date,year7player columns.
                     columnEquivalentsTime = ["year7time", "year8time", "year9time", "year10time", "seniortime", "girlstime"]
                     columnEquivalentsDate = ["year7date", "year8date", "year9date", "year10date", "seniordate", "girlsdate"]
                     columnEquivalentsPlayer = ["year7player", "year8player", "year9player", "year10player", "seniorplayer", "girlsplayer"]
-                    columnTime = ""
-                    columnDate = ""
-                    columnTime = ""
+                    columnTime = "" # will hold the translated column name
+                    columnDate = "" # will hold the translated column name
+                    columnTime = "" # will hold the translated column name
                     for i in range (0, len(ageCategories)):
                         if ageCategories[i] == age_category:
+                            #iterates through the list and assigns the translated column names to the respective variables
                             columnTime = columnEquivalentsTime[i]
                             columnDate = columnEquivalentsDate[i]
                             columnPlayer = columnEquivalentsPlayer[i]
                     if age_category == "Year 11":
+                        # special case scenario where year 11s are counted as seniors
                             columnTime = "seniortime"
                             columnDate = "seniordate"
                             columnPlayer = "seniorplayer"
                             if columnTime == "":
+                                # presence check - if the columns did not manage to be translated then the user is directed back to the leaderboard page.
                                 leaderboardpage(e)
-                                return
+                                return # prevents the next instructions from being executed and hence preventing any errors
                     select = f"""SELECT {columnTime} FROM "school_records"
                                     WHERE "event" = %s; """
                     cursor.execute(select, (event_name,))
+                    # selects the current record
                     currentrecord = cursor.fetchone()
                     print(currentrecord)
                     if currentrecord is None:
+                        # presence check - if no record was selected then the next instructions need to be skipped to prevent errors.
                         leaderboardpage(e)
                         return
-                    currentrecord = timeToSeconds(currentrecord[0])
-                    recordchecktime = date.today().year
+                    currentrecord = timeToSeconds(currentrecord[0]) # converts the current record to seconds so that it can be compared correctly, note that if it is a distance based event nothing actually happens to the score as it will just be return back without any changes
+                    recordchecktime = date.today().year # gets the current year, that way when the form is submitted it will retrieve the current year and hence the year in which the record was broken.
                     if timebool == True:
+                        # if it is a timebased event then the better results is the result that took less time as opposed to if it was a distance based event in which case the greater distance is the better result.
                         if recordcheck < currentrecord:
+                            # if the record is broken then the new time, player and date are updated
                             updateTimeRecord = f"""UPDATE "school_records"
                                                   SET  {columnPlayer} = %s,
                                                        {columnDate} = %s,
@@ -1742,6 +1822,7 @@ def main(page):
                             connection.commit()
                     if distancebool == True:
                         if recordcheck > currentrecord:
+                            # if the record is broken then the new time, player and date are updated
                             updateDistanceRecord = f"""UPDATE "school_records"
                                                   SET  {columnPlayer} = %s,
                                                        {columnDate} = %s,
@@ -1750,27 +1831,37 @@ def main(page):
                             cursor.execute(updateDistanceRecord, (recordcheckplayer, recordchecktime,recordcheck, event_name))
                             connection.commit()
                 leaderboardpage(e)
+                # after the records have been checked and results entered into the respectives tables in the database the user is led back to the original page - leaderboardpage
             def searchFunction(e): 
-                value = searchbar.value
-                index = -1
-                page.session.set("event", "")
+                # function to search for the event that the user inputs
+                value = searchbar.value # retrieves the inputted event
+                index = -1 # initialises the index variable which will store the index at which the event the user searched for can be found
+                page.session.set("event", "") # resets the event variable to "" so that any previous values it had are cleaned and the results are not accidentally written to the old event value.
                 for i in range (0,len(optionsCleaned)):
                     current = optionsCleaned[i]
+                    # iterates through the list 1 by 1
                     if value.lower() in current.lower():
+                        #if the user input and event name match then this index at which the match occurs is stored for later
                         index = i
                     if index != -1:
+                        # if a match was found then the index is used to assign event the eventname
                         page.session.set("event", optionsCleaned[index])
                     else:
+                        # if no match was found then event is set to ""
                         page.session.set("event", "")
                 if index == -1:
+                    # if no index/match was found that means the user has not input a valid event and will be prompted to do so - validation check
                     invalid.visible = True
                     Event.visible = False
                     page.update()
                 else:
+                    # if an index/match was found then the user is notified of the event that they have slected via:
                     Event.value = "You have selected event: " + (page.session.get("event") or "")
                     Event.visible = True
                     invalid.visible = False
                     page.update()
+
+            # defines text that goes on screen which instruct the user on how to use the form
             instruction1 = flet.Text(value = "This is the event entry form which you can use to record the results of the Sports Day events!", color = "Green", size = 20)
             instruction2 = flet.Text(value = "1. Type in the event you would like to record a result for and press submit, to select a different event simply re-type and submit again!", color = "Green", size = 20)
             instruction3 = flet.Text(value = "2. You should search for the event in this format: 'Year 7 100m A'", color = "Green", size = 20)
@@ -1783,16 +1874,18 @@ def main(page):
             page.add(instruction4)
             page.add(instruction5)
             page.add(instruction6)
+            #creates a searchbar that the user is able to input the event they want to select, into
             searchbar = flet.TextField(
                 label = "Search for event ...",
             )
             page.add(searchbar)
-            submit = flet.ElevatedButton(text = "Submit", width = 200, height = 50, on_click = searchFunction)
-            invalid = flet.Text("Invalid event try again", visible = False, color = "Red")
+            submit = flet.ElevatedButton(text = "Submit", width = 200, height = 50, on_click = searchFunction) # creates a submit button that calls searchFunction when clicked which will select the event that the user has searched for.
+            invalid = flet.Text("Invalid event try again", visible = False, color = "Red") # creates an error message whose visibilty can be toggled to True or False depending on whether the validation checks are passed or not.
             page.add(invalid)
-            Event = flet.Text("You have selected event: ", visible = False, color = "Green")
+            Event = flet.Text("You have selected event: ", visible = False, color = "Green")# creates message letting the user know what event the have selected, visibilty is toggled based on whether validation checks are passed or not.
             page.add(Event)
             page.add(submit)
+            # creates dropdown to gather the position of bridges in the event
             bridgesdd = flet.Dropdown(
                     label = "Bridges Position",
                     options = [
@@ -1805,6 +1898,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # creates dropdown to gather the position of carew in the event
             carewdd = flet.Dropdown(
                     label = "Carew Position",
                     options = [
@@ -1817,6 +1911,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # creates dropdown to gather the position of mandeville in the event
             mandevilledd = flet.Dropdown(
                     label = "Mandeville's Position",
                     options = [
@@ -1829,6 +1924,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # creates dropdown to gather the position of radcliffe in the event
             radcliffedd = flet.Dropdown(
                     label = "Radcliffe's Position",
                     options = [
@@ -1841,6 +1937,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # creates dropdown to gather the position of ruskin in the event
             ruskindd = flet.Dropdown(
                     label = "Ruskin's Position",
                     options = [
@@ -1853,6 +1950,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # creates dropdown to gather the position of woodcote in the event
             woodcotedd = flet.Dropdown(
                     label = "Woodcote's Position",
                     options = [
@@ -1875,6 +1973,7 @@ def main(page):
             ],
             alignment=flet.MainAxisAlignment.CENTER,
             ))
+            # Creates a textbox for each respective house to gather the names of all the athletes who competed in the event:
             bridgesplayer = flet.TextField(
                 label = "Enter the Bridges player's name ...", width = 200
             )
@@ -1903,6 +2002,7 @@ def main(page):
             ],
             alignment=flet.MainAxisAlignment.CENTER,
             ))
+            # Creates a textbox for each respective house to gather the times/distances of all the athletes who competed in the event:
             bridgesplayertime = flet.TextField(
                 label = "Enter the Bridges player's time/distance  ...", width = 200
             )
@@ -1931,18 +2031,18 @@ def main(page):
             ],
             alignment=flet.MainAxisAlignment.CENTER,
             ))
-            submit = flet.ElevatedButton(text = "Submit results!", width = 300, height = 100, on_click = dropdown)
+            submit = flet.ElevatedButton(text = "Submit results!", width = 300, height = 100, on_click = dropdown) # adds a submit button that when clicked will go ahead and update the relevant tables and check the athletics records and update them if need be
             page.add(submit)
-        searchBar(optionsCleaned)
-        presenceMessage0 = flet.Text("Please make sure to select an event!", color = "red", visible = False)
+        searchBar(optionsCleaned) # creates a searchbar for the user to search for the event
+        presenceMessage0 = flet.Text("Please make sure to select an event!", color = "red", visible = False) # message to prompt the user to enter the relevant details as a result of a presence check
         page.add(presenceMessage0)
-        presenceMessage1 = flet.Text("Please make sure each House is allocated a position via the dropdowns!", color = "red", visible = False)
+        presenceMessage1 = flet.Text("Please make sure each House is allocated a position via the dropdowns!", color = "red", visible = False)# message to prompt the user to enter the relevant details as a result of a presence check
         page.add(presenceMessage1)
-        presenceMessage2 = flet.Text("Please make sure each House's representative's name and time/distance are entered!", color = "red", visible = False)
+        presenceMessage2 = flet.Text("Please make sure each House's representative's name and time/distance are entered!", color = "red", visible = False)# message to prompt the user to enter the relevant details as a result of a presence check
         page.add(presenceMessage2)
-        colonmessage = flet.Text("For the 800m, 1500m and Relay events enter the time as min:secs like 1:08 and for all other events keep the time in seconds!", color = "red", visible = False)
+        colonmessage = flet.Text("For the 800m, 1500m and Relay events enter the time as min:secs like 1:08 and for all other events keep the time in seconds!", color = "red", visible = False)# message to prompt the user to enter the relevant details in the correct format as a result of a format check
         page.add(colonmessage)
-        BACKBUTTON1 = backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = EEBclicked)
+        BACKBUTTON1 = backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = EEBclicked) # Creates a button that allows user to go back to the previous page
         page.add(BACKBUTTON1)
     def houseEventsButtonClicked(e):
         page.controls.clear()
