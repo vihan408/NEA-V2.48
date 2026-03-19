@@ -2045,25 +2045,30 @@ def main(page):
         BACKBUTTON1 = backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = EEBclicked) # Creates a button that allows user to go back to the previous page
         page.add(BACKBUTTON1)
     def houseEventsButtonClicked(e):
+        # This is the function called when the user opts to enter event results for a normal Cock House Cup event rather than a sports day event
         page.controls.clear()
-        page.session.set("event", "")
+        page.session.set("event", "") # resets the event variable to "" so that any previous values it had are cleaned and the results are not accidentally written to the old event value.
         page.scroll = flet.ScrollMode.AUTO
         backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = EEBclicked) # Creates a button that allows user to go back to the previous page
         page.vertical_alignment = flet.MainAxisAlignment.CENTER
         page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
+        # selects all the hoouse events from the database
         select = """ SELECT house_event FROM house_event_list ; """
         cursor.execute(select)
         fetch = cursor.fetchall()
-        options = fetch
+        options = fetch # stores the fetched house events to the options list which is currently in a tuple format
         optionsCleaned = []
         for i in range(0, len(options)):
+            # "Cleans" the list extracting the event name from the tuple
             optionsCleaned.append(options[i][0])
         page.vertical_alignment = flet.MainAxisAlignment.CENTER
         page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
         page.theme_mode= flet.ThemeMode.DARK
         page.add(flet.Text(value = "Enter Event results", color = "Red", size = 50))
         def searchBar(optionsCleaned):
+            # This function creates a searchbar for the user to input the event they would like to enter the result for, called when the submit button is clicked.
             def dropdown(e):
+                # This function inserts the results that the user enters, called when the submit results button is clicked
                 bpos = bridgesdd.value
                 cpos = carewdd.value
                 mpos = mandevilledd.value
@@ -2071,125 +2076,155 @@ def main(page):
                 rupos = ruskindd.value
                 wpos = woodcotedd.value
                 rank = [bpos, cpos, mpos, rapos, rupos, wpos]
+                # Retrieves all of the user's inputs for the position of the houses and adds them to a list called rank
                 if None in rank:
+                    # presence check making sure that the user has allocated a position for every single house
                     presenceMessage.visible = True
                     page.update()
                     return
                 if searchbar.value == "":
+                    # presence check making sure that the user has selected an event to enter the results for
                     presenceMessage.visible = True
                     page.update()
                     return
                 point = []
-                weightedEvents = ["House Music", "House Drama"]
+                weightedEvents = ["House Music", "House Drama"] # identifiers/keywords that will be found in the event's name if the event is weighted
                 if weightedEvents[0] not in (page.session.get("event") or "") and weightedEvents[1] not in (page.session.get("event") or ""):
+                    # if it is not a weighted event then:
                     for i in range(0, len(rank)):
+                        # Iteratively adds the number of points each house should get
                         point.append(7 - int(rank[i]))
+                    # updates/inserts the results for bridges, writes the number of points awarded from the event
                     insertBridges = """UPDATE "bridges_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s;"""
                     cursor.execute(insertBridges,(point[0],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the results for carew, writes the number of points awarded from the event
                     insertCarew = """UPDATE "carew_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertCarew,(point[1],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the results for mandeville, writes the number of points awarded from the event
                     insertMandeville = """UPDATE "mandeville_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertMandeville,(point[2],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the results for radcliffe, writes the number of points awarded from the event
                     insertRadcliffe = """UPDATE "radcliffe_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertRadcliffe,(point[3],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the results for ruskin, writes the number of points awarded from the event
                     insertRuskin = """UPDATE "ruskin_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertRuskin,(point[4],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the results for woodcote, writes the number of points awarded from the event
                     insertWoodcote = """UPDATE "woodcote_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertWoodcote,(point[5],(page.session.get("event") or "")))
                     connection.commit()
                 else:
+                    # If it is a weighted event then:
                     weightedrank = ["1", "2", "3", "4", "5", "6"]
                     weightedpoints = ["9", "7", "5", "3", "2", "1"]
+                    # Iteratively adds the points each house should be allocated based on the position of the house.
+                    # The position of the house is found in the weighted rank list and the index at which it is found is the same index where the weighted point score for the respective position can be found
                     for i in range (0, len(weightedrank)):
                         for j in range(0, 6):
                             if rank[i] == weightedrank[j]:
-                                point.append(weightedpoints[j])                        
+                                point.append(weightedpoints[j])    
+                    # updates/inserts the weighted results for bridges, writes the number of points awarded from the event
                     insertBridges = """UPDATE "bridges_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s;"""
                     cursor.execute(insertBridges,(point[0],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the weighted results for carew, writes the number of points awarded from the event
                     insertCarew = """UPDATE "carew_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertCarew,(point[1],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the weighted results for mandeville, writes the number of points awarded from the event
                     insertMandeville = """UPDATE "mandeville_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertMandeville,(point[2],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the weighted results for radcliffe, writes the number of points awarded from the event
                     insertRadcliffe = """UPDATE "radcliffe_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertRadcliffe,(point[3],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the weighted results for ruskin, writes the number of points awarded from the event
                     insertRuskin = """UPDATE "ruskin_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertRuskin,(point[4],(page.session.get("event") or "")))
                     connection.commit()
+                    # updates/inserts the weighted results for woodcote, writes the number of points awarded from the event
                     insertWoodcote = """UPDATE "woodcote_events"
                                         SET "points" = %s 
                                         WHERE "event" = %s; """
                     cursor.execute(insertWoodcote,(point[5],(page.session.get("event") or "")))
                     connection.commit()
+                # After the results have been submitted and updated in the database the user is lead back to the homepgae/leaderboardpage
                 leaderboardpage(e)
             def searchFunction(e): 
-                value = searchbar.value
-                index = -1
-                page.session.set("event", "")
+                # Function that pairs the user's input with the appropriate event.
+                value = searchbar.value # retrieves value input by the user
+                index = -1 # initialises the index variable which will store the index at which the event the user searched for can be found
+                page.session.set("event", "")  # resets the event variable to "" so that any previous values it had are cleaned and the results are not accidentally written to the old event value.
                 for i in range (0,len(optionsCleaned)):
+                    # iterates through the list 1 by 1
                     current = optionsCleaned[i]
                     if value.lower() in current.lower():
                         index = i
+                        #if the user input and event name match then this index at which the match occurs is stored for later
                     if index != -1:
+                        # if a match was found then the index is used to assign event the eventname
                         page.session.set("event", optionsCleaned[index])
                     else:
+                        # if no match was found then event is set to ""
                         page.session.set("event", "")
                 if index == -1:
+                    # if no index/match was found that means the user has not input a valid event and will be prompted to do so - validation check
                     invalid.visible = True
                     Event.visible = False
                     page.update()
                 else:
+                    # if an index/match was found then the user is notified of the event that they have slected via:
                     Event.value = "You have selected event: " + (page.session.get("event") or "")
                     Event.visible = True
                     invalid.visible = False
                     page.update()
-            
+            # defines text that goes on screen which instruct the user on how to use the form
             instruction1 = flet.Text(value = "This is the event entry form which you can use to record the results of events.", color = "Green", size = 20)
             instruction2 = flet.Text(value = "1. Type in the event you would like to record a result for and press submit, to select a different event simply re-type and submit again!", color = "Green", size = 20)
             instruction3 = flet.Text(value = "2. Select the position of the houses via the dropdown form, if there was a tie simply allocate the same position!", color = "Green", size = 20)
             page.add(instruction1)
             page.add(instruction2)
             page.add(instruction3)
+            # add a searchbar for the user to input the event they want to submit the result for
             searchbar = flet.TextField(
                 label = "Search for event ...",
             )
             page.add(searchbar)
-            submit = flet.ElevatedButton(text = "Submit", width = 200, height = 50, on_click = searchFunction)
+            submit = flet.ElevatedButton(text = "Submit", width = 200, height = 50, on_click = searchFunction) # submit button that when clicked will go and retrieve/match the userinput with the full eventname
             page.add(submit)
-            invalid = flet.Text("Invalid event try again", visible = False, color = "Red")
+            invalid = flet.Text("Invalid event try again", visible = False, color = "Red") # Prompts use to enter a valid event when no match is found - validation checks are not passed, displayed via toggling visibility between true and false when validation checks are passed or not
             page.add(invalid)
-            Event = flet.Text("You have selected event: ", visible = False, color = "Green")
+            Event = flet.Text("You have selected event: ", visible = False, color = "Green") # Tells the user what event they have selected after all validation checks have been passed, displayed via toggling visibility between truue and false when validation checks are passed or not
             page.add(Event)
+            # Creates a dropdown where the user can allocate the position of bridges in the event
             bridgesdd = flet.Dropdown(
                     label = "Bridges Position",
                     options = [
@@ -2202,6 +2237,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # Creates a dropdown where the user can allocate the position of carew in the event
             carewdd = flet.Dropdown(
                     label = "Carew Position",
                     options = [
@@ -2214,6 +2250,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # Creates a dropdown where the user can allocate the position of mandeville in the event
             mandevilledd = flet.Dropdown(
                     label = "Mandeville's Position",
                     options = [
@@ -2226,6 +2263,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # Creates a dropdown where the user can allocate the position of radcliffe in the event
             radcliffedd = flet.Dropdown(
                     label = "Radcliffe's Position",
                     options = [
@@ -2238,6 +2276,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # Creates a dropdown where the user can allocate the position of ruskin in the event
             ruskindd = flet.Dropdown(
                     label = "Ruskin's Position",
                     options = [
@@ -2250,6 +2289,7 @@ def main(page):
                     ],
                     width = 200
                 )
+            # Creates a dropdown where the user can allocate the position of woodcote in the event
             woodcotedd = flet.Dropdown(
                     label = "Woodcote's Position",
                     options = [
@@ -2272,84 +2312,108 @@ def main(page):
             ],
             alignment=flet.MainAxisAlignment.CENTER,
             ))
-            submit = flet.ElevatedButton(text = "Submit results!", width = 300, height = 100, on_click = dropdown)
+            submit = flet.ElevatedButton(text = "Submit results!", width = 300, height = 100, on_click = dropdown) # Creates a submit results button that when clicked will call the drop down function which will write the results to the database
             page.add(submit)
-            presenceMessage = flet.Text("Please make sure all details are provided by filling all the boxes!", color = "red", visible = False)
+            presenceMessage = flet.Text("Please make sure all details are provided by filling all the boxes!", color = "red", visible = False) # Creates the error message that will be displayed when the presence check is failed, prompting the user to enter all the details needed.
             page.add(presenceMessage)
-            successText = flet.Text("Results sucessfully submitted!", color = "green", visible = False)
+            successText = flet.Text("Results sucessfully submitted!", color = "green", visible = False) # Creates message that lets the user know that the resuls have been correctly submitted and written to the database
             page.add(successText)
-            BACKBUTTON = backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = EEBclicked)
+            BACKBUTTON = backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = EEBclicked)# Creates a back button that when clicked leads the user back to the previous page
             page.add(BACKBUTTON)
             page.update()
-        searchBar(optionsCleaned)
+        searchBar(optionsCleaned) # Calls the searchBar function which will display the form on the page for the user to input into.
     def individualResetButtonClicked(e):
+        # This is the function called when the user clicks the individual event reset button.
+        # This function will be used to deleted any entries about that specific event that the user inputs.
         page.controls.clear()
         page.update()
         page.theme_mode= flet.ThemeMode.DARK
         page.vertical_alignment = flet.MainAxisAlignment.CENTER
         page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
         page.add(flet.Text(value = "Search for the event for which you would like to erase the result of!", color = "Blue", size = 50))
+        # Creates searchbar for user to input the event they would like to reset the result of
         searchbar = flet.TextField(
                 label = "Search for event ...",
             )
         page.add(searchbar)
         def submitButtonClicked(e):
-            selectnormalevents = """SELECT * FROM "house_event_list"; """
+            # This function is called when the submit button is clicked, which is the final check and verification before the system will actually go ahead and delete the result for that specfic event.
+            selectnormalevents = """SELECT * FROM "house_event_list"; """ # selects all the house events from the database table - house_event_list
             cursor.execute(selectnormalevents)
-            listnormal = cursor.fetchall()
-            selectsportsdayevents = """SELECT "event" FROM "sports_day_events";  """
+            listnormal = cursor.fetchall() # stores these fetched house events to the list - listnormal
+            selectsportsdayevents = """SELECT "event" FROM "sports_day_events";  """ # selects all of the sports day events
             cursor.execute(selectsportsdayevents)
-            listsportsday = cursor.fetchall()
-            eventList = []
+            listsportsday = cursor.fetchall() # stores these fetched sports day events to the list - listsportsday
+            eventList = [] # This will be a list of every single possible event including both the sportsday events as well as normal Cock House Cup events too!
             for i in range(0, len(listnormal)):
+                # The events are all in tuple format which are iteratively extracted and appended to the eventList
                 eventList.append(listnormal[i][0])
             for i in range(0, len(listsportsday)):
+                # The events are all in tuple format which are iteratively extracted and appended to the eventList
                 eventList.append(listsportsday[i][0])
-            input = searchbar.value
-            index = -1
+            input = searchbar.value # retrieves the user's input in the searchbar
+            index = -1 # initialises the index variable which will store the index at which the event the user searched for can be found
             event = ""
             for i in range (0,len(eventList)):
                 current = eventList[i]
+                # iterates through the list one by one
                 if input.lower() in current.lower():
+                    # if a match is found the current index is saved
                     index = i
                 if index != -1:
+                    # if a match was found then the full eventname that is found at that index is stored to event for later
                     event = eventList[index]
                 else:
+                    # if no match was found the event is set to ""
                     event = ""
-            page.session.set("index", index)
-            page.session.set("event", event)
+            page.session.set("index", index) # because the index at which the userinput's match can be found, each user will need their own personal version of index so as to not overwrite each others indexes. 
+            page.session.set("event", event) # the same goes for event where each user needs their own personal version of this variable to prevent inteference when multiple users are on the system
             if index == -1:
+                # validation check - if no index was found the user's input was not valid and need to try again, which they will be prompted to do, by toggling the invalid message's visibilty to True
                 invalid.visible = True
                 Event.visible = False
-                clearButton.visible = False
+                clearButton.visible = False # Removes the clear button from the screen as no event to clear has been selected yet.
                 page.update()
             else:
-                Event.value = "You have selected event: " + event
-                Event.visible = True
+                Event.value = "You have selected event: " + event # lets the user know what event they have selected
+                Event.visible = True # visibility is toggled to true so that the user can see this message and therefore see what event they have selected and are about to reset the result of.
                 invalid.visible = False
-                clearButton.visible = True
+                clearButton.visible = True # The clear button is now added to the screen since now an event to reset has been selected.
                 page.update()
         def clearButtonClicked(e):
+            # When the user decides to click the clear button the event results will need to be reset in the database which this function will do.
             if (page.session.get("index") if page.session.get("index") is not None else -1) < 39:
+                # The above selection statement says that if the session index < 39 then do :
+                # But first it checks that index has a value which is not "None", but if the value is None use -1 instead to prevent errors from being caused.
+                # The reason for checking whether the index is less than 39 is because all of the normal Cock House Cup events where appedended to the list first and there are 38 events. This differentiation of the type of event via the index of it will tell me which tables I need to update due to whether it is a normal house event or a sportsday event.
+                # Resets the bridges for that specific event, indicated by the where clause of the query, points back to 0
                 erasebridges = """UPDATE "bridges_events" SET "points" = '0' WHERE event = %s; """
                 cursor.execute(erasebridges, ((page.session.get("event") or ""),))
                 connection.commit()
+                # Resets the carew points for that specific event, indicated by the where clause of the query, back to 0
                 erasecarew = """UPDATE "carew_events" SET "points" = '0' WHERE event = %s; """
                 cursor.execute(erasecarew, ((page.session.get("event") or ""),))
                 connection.commit()
+                # Resets the mandeville points for that specific event, indicated by the where clause of the query, back to 0
                 erasemandeville = """UPDATE "mandeville_events" SET "points" = '0' WHERE event = %s; """
                 cursor.execute(erasemandeville, ((page.session.get("event") or ""),))
                 connection.commit()
+                # Resets the radcliffe points for that specific event, indicated by the where clause of the query, back to 0
                 eraseradcliffe = """UPDATE "radcliffe_events" SET "points" = '0' WHERE event = %s; """
                 cursor.execute(eraseradcliffe, ((page.session.get("event") or ""),))
                 connection.commit()
+                # Resets the ruskin points for that specific event, indicated by the where clause of the query, back to 0
                 eraseruskin = """UPDATE "ruskin_events" SET "points" = '0' WHERE event = %s; """
                 cursor.execute(eraseruskin, ((page.session.get("event") or ""),))
                 connection.commit()
+                # Resets the woodcote points for that specific event, indicated by the where clause of the query, back to 0
                 erasewoodcote = """UPDATE "woodcote_events" SET "points" = '0' WHERE event = %s; """
                 cursor.execute(erasewoodcote, ((page.session.get("event") or ""),))
                 connection.commit()
             if (page.session.get("index") if page.session.get("index") is not None else -1) > 38:
+                # The above selection statement says that if the session index > 38 then do :
+                # But first it checks that index has a value which is not "None", but if the value is None use -1 instead to prevent errors from being caused.
+                # If the index is greater than 38 this means that it is a sports day event.
                 erasesportsday = """UPDATE "sports_day_events"
                                             SET bridgespoints = 0,
                                               carewpoints = 0,
@@ -2360,18 +2424,22 @@ def main(page):
                                                      WHERE event = %s; """
                 cursor.execute(erasesportsday, ((page.session.get("event") or ""),))
                 connection.commit()
+                # This query above will reset all the points each house was allocated for the event
                 if "Tug of War" not in (page.session.get("event") or ""):
-                    timeEvents = ["100m", "200m", "300m", "400m", "800m", "1500m", "Relay"]
-                    distanceEvents = ["Javelin", "Discus", "Shotput", "Long Jump", "Triple Jump", "High Jump"]
-                    timebool = False
-                    distancebool = False
+                    # Must check whether the event is tug of war since tug of war only stores data in this table and is not in any other table, so if the individual event to be reset was tug of war then the results has now completely been reset.
+                    # if the event was not tug of war then the player name and time/distance still needs to be erased
+                    timeEvents = ["100m", "200m", "300m", "400m", "800m", "1500m", "Relay"] # keywords/identifiers for time based events
+                    distanceEvents = ["Javelin", "Discus", "Shotput", "Long Jump", "Triple Jump", "High Jump"] # keywords/identifiers for distance based events
+                    timebool = False # Stores whether event is time based or not
+                    distancebool = False # Stores whether event is distance based or not
                     for i in range(0,len(timeEvents)):
                         if timeEvents[i] in (page.session.get("event") or ""):
-                            timebool = True
+                            timebool = True # if keyword for time based events is in the event name then the event is time based - toggled to true
                     for i in range(0,len(distanceEvents)):
                         if distanceEvents[i] in (page.session.get("event") or ""):
-                            distancebool = True
+                            distancebool = True # if keyword for distance based events is in the event name then the event is distance based - toggled to true
                     if timebool == True:
+                        # if time based then the results need to be erased from the sports_day_times table
                         erasetimeplayer = """UPDATE "sports_day_times"
                                         SET player_bridges = NULL,
                                           player_bridges_time = NULL,
@@ -2388,7 +2456,9 @@ def main(page):
                                                              WHERE event = %s; """
                         cursor.execute(erasetimeplayer, ((page.session.get("event") or ""),))
                         connection.commit()
+                        # resets all the columns for that row aside from the event and row_order column to null
                     if distancebool == True:
+                        # if distance based then the results need to be erased from the sports_day_distances table
                         erasedistanceplayer = """UPDATE "sports_day_distances"
                                         SET player_bridges = NULL,
                                           player_bridges_distance = NULL,
@@ -2405,44 +2475,55 @@ def main(page):
                                                              WHERE event = %s; """
                         cursor.execute(erasedistanceplayer, ((page.session.get("event") or ""),))
                         connection.commit()
+                        # resets all the columns for that row aside from the event and row_order column to null
+            # returns the user back to the leaderboard page or homepage once this is done
             leaderboardpage(e)
-        submitButton = flet.ElevatedButton(text = "Submit", width = 150, height = 75, on_click = submitButtonClicked)
+        submitButton = flet.ElevatedButton(text = "Submit", width = 150, height = 75, on_click = submitButtonClicked) # Creates the submit button that when clicked will search and select the appropriate event that the user wants to reset
         page.add(submitButton)
-        invalid = flet.Text("Invalid event try again", visible = False, color = "Red")
+        invalid = flet.Text("Invalid event try again", visible = False, color = "Red") # Creates the error message that tells the user to enter a valid event, visibility is toggled to true when validation checks are not passed.
         page.add(invalid)
-        Event = flet.Text("You have selected event: ", visible = False, color = "Green")
+        Event = flet.Text("You have selected event: ", visible = False, color = "Green") # Creates message to let user know what event's result they are about to reset.
         page.add(Event)
-        clearButton = flet.ElevatedButton(text = "Clear Results", visible = False, width = 150, height = 75, color = "Red",on_click = clearButtonClicked)
+        clearButton = flet.ElevatedButton(text = "Clear Results", visible = False, width = 150, height = 75, color = "Red",on_click = clearButtonClicked) # # Creates the submit button that when clicked will actually go ahead and reset the event's result
         page.add(clearButton)
-        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = adminButtonClicked)
+        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = adminButtonClicked) # Creates a back button that when clicked will lead the user back to the previous page
         page.add(backButton)
     def masterResetButtonClicked(e):
+        # This is the function that when called will reset every single event result in the whole system
         page.controls.clear()
         page.update()
         page.theme_mode= flet.ThemeMode.DARK
         page.vertical_alignment = flet.MainAxisAlignment.CENTER
         page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
         def yesButtonClicked(e):
+            # This function is called after the user confirms that they want to reset the results of every single event in the system
             page.controls.clear()
             page.update()
             page.theme_mode= flet.ThemeMode.DARK
             page.vertical_alignment = flet.MainAxisAlignment.CENTER
             page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
-            page.add(flet.Text(value = "All events have been reset successfully!", color = "green", size = 75))
-            backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = adminButtonClicked)
+            page.add(flet.Text(value = "All events have been reset successfully!", color = "green", size = 75)) # Creates a message letting the user know that all event results have been reset successfully.
+            backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = adminButtonClicked) # Creates a back button that when clicked leads the user back to the previous page
             page.add(backButton)
+            # Resets the entire points column in the bridges table
             reset_bridges_events = """UPDATE "bridges_events"
                                         SET points = '0';  """
+            # Resets the entire points column in the carew table
             reset_carew_events = """UPDATE "carew_events"
                                         SET points = '0';  """
+            # Resets the entire points column in the mandeville table
             reset_mandeville_events = """UPDATE "mandeville_events"
                                         SET points = '0';  """
+            # Resets the entire points column in the radcliffe table
             reset_radcliffe_events = """UPDATE "radcliffe_events"
                                         SET points = '0';  """
+            # Resets the entire points column in the ruskin table
             reset_ruskin_events = """UPDATE "ruskin_events"
                                         SET points = '0';  """
+            # Resets the entire points column in the woodcote table
             reset_woodcote_events = """UPDATE "woodcote_events"
                                         SET points = '0';  """
+            # Resets all the columns aside from event and row_order in the sports_day_distances table
             reset_sports_day_distances = """UPDATE "sports_day_distances"
                                         SET player_bridges = NULL,
                                           player_bridges_distance = NULL,
@@ -2456,6 +2537,7 @@ def main(page):
                                                           player_ruskin_distance = NULL,
                                                             player_woodcote = NULL,
                                                              player_woodcote_distance = NULL; """
+            # Resets all the columns aside from event and row_order in the sports_day_events table
             reset_sports_day_events = """UPDATE "sports_day_events"
                                             SET bridgespoints = 0,
                                               carewpoints = 0,
@@ -2463,6 +2545,7 @@ def main(page):
                                                   radcliffepoints = 0,
                                                     ruskinpoints = 0,
                                                      woodcotepoints = 0; """
+            # Resets all the columns aside from event and row_order in the sports_day_times table
             reset_sports_day_times = """UPDATE "sports_day_times"
                                         SET player_bridges = NULL,
                                           player_bridges_time = NULL,
@@ -2476,6 +2559,7 @@ def main(page):
                                                           player_ruskin_time = NULL,
                                                             player_woodcote = NULL,
                                                              player_woodcote_time = NULL; """
+            #Executes all of these above queries
             cursor.execute(reset_bridges_events)
             connection.commit()
             cursor.execute(reset_carew_events)
@@ -2494,47 +2578,54 @@ def main(page):
             connection.commit()
             cursor.execute(reset_sports_day_times)
             connection.commit()
-        instruction = flet.Text("Do you want to reset the results for every single event?")
-        yesButton = flet.ElevatedButton(text = "Yes", color = "Green", width = 300, height = 100, on_click = yesButtonClicked)
-        noButton = flet.ElevatedButton(text = "No", color = "Red", width = 300, height = 100, on_click = adminButtonClicked)
+        instruction = flet.Text("Do you want to reset the results for every single event?") # Creates message asking user if they really want to reset the result of every event
+        yesButton = flet.ElevatedButton(text = "Yes", color = "Green", width = 300, height = 100, on_click = yesButtonClicked) # If clicked then calls yesButtonClicked function which will go ahead and reset every single event result
+        noButton = flet.ElevatedButton(text = "No", color = "Red", width = 300, height = 100, on_click = adminButtonClicked) # If clicked then user does not want to execute a master reset and hence will be lead back to the previous page by calling the adminButtonClicked function
         page.add(instruction)
         page.add(flet.Row(
             controls = [yesButton, noButton],
             alignment=flet.MainAxisAlignment.CENTER
         ))
-        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = adminButtonClicked)
+        backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = adminButtonClicked) # Creates a back button that when clicked will lead the user back to the previous page
         page.add(backButton)
     def adminButtonClicked(e):
+        # function called when the admin button is clicked
         def adminButtonClickedPostLogin():
+            # function for when the user is actually logged in and hence can access the features of the admin section
             page.session.set("logged_in", True)
             page.controls.clear()
             page.update()
             page.theme_mode= flet.ThemeMode.DARK
             page.vertical_alignment = flet.MainAxisAlignment.CENTER
             page.horizontal_alignment = flet.CrossAxisAlignment.CENTER
-            masterResetButton = flet.ElevatedButton(text = "Master Reset", width = 300, height = 100, color = "red", on_click = masterResetButtonClicked)
-            individualResetButton = flet.ElevatedButton(text = "Individual event reset", width = 300, height = 100, color = "red", on_click = individualResetButtonClicked)
+            masterResetButton = flet.ElevatedButton(text = "Master Reset", width = 300, height = 100, color = "red", on_click = masterResetButtonClicked) # Creates the master reset button that when clicked will lead the user to a page asking if they truly want to reset every single result. When clicked it calls the masterResetButtonClicked function.
+            individualResetButton = flet.ElevatedButton(text = "Individual event reset", width = 300, height = 100, color = "red", on_click = individualResetButtonClicked) # Creates the individual reset button that when clicked will call the individualResetButtonClicked function which will allow the user to first search for the even that they would like to reset the result of.
             page.add(flet.Row(
                 controls = [masterResetButton, individualResetButton],
                 alignment=flet.MainAxisAlignment.CENTER
             ))
-            backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = leaderboardpage)
+            backButton = flet.ElevatedButton(text = "←", color = "white", width = 50, height = 50, on_click = leaderboardpage) # Creates a back button that when clicked will lead the user back to the previous page
             page.add(backButton)
         if page.session.get("logged_in") == True:
+            # If user is logged in go straight to displaying the next page by calling the function below:
             adminButtonClickedPostLogin()
         else:
+            # if the user is not logged in the must first login:
             page.controls.clear()
             page.update()
             login_page(page, on_success = adminButtonClickedPostLogin, on_back = leaderboardpage)
+            # on_success defines that when the login is successful then adminButtonClickedPostLogin function should be called
+            # on_back defines that when the user clicks the back button the leaderboardpage function should be called which just leads the user back to the previous page.
     def leaderboardpage(e):
+        # This is the homepage function or the original screen
         page.controls.clear()
         page.scroll = None
         page.theme_mode= flet.ThemeMode.DARK
-        standingsButton = flet.ElevatedButton(text = "Cock House Cup standings", width = 275, height = 100, on_click = CHCSclicked)    # Creates a button
-        individualButton = flet.ElevatedButton(text = "Individual event results", width = 275, height = 100, on_click = IERclicked)   # Creates a button 
-        sportsdayButton = flet.ElevatedButton(text = "Sports day results", width = 275, height = 100, on_click = SDRclicked)          # Creates a button 
-        eventEntryButton = flet.ElevatedButton(text = "Event Score Entry", width = 275, height = 100, on_click = EEBclicked)
-        adminButton = flet.ElevatedButton(text = "Admin", width = 275, height = 100, color = "red", on_click = adminButtonClicked)
+        standingsButton = flet.ElevatedButton(text = "Cock House Cup standings", width = 275, height = 100, on_click = CHCSclicked)    # Creates a button for the overall standings
+        individualButton = flet.ElevatedButton(text = "Individual event results", width = 275, height = 100, on_click = IERclicked)   # Creates a button for the individual standing
+        sportsdayButton = flet.ElevatedButton(text = "Sports day results", width = 275, height = 100, on_click = SDRclicked)          # Creates a button for sports day related features
+        eventEntryButton = flet.ElevatedButton(text = "Event Score Entry", width = 275, height = 100, on_click = EEBclicked)          # Creates a button for the eventy entry forms
+        adminButton = flet.ElevatedButton(text = "Admin", width = 275, height = 100, color = "red", on_click = adminButtonClicked)    # Creates a button for the admin section
         page.add(
             flet.Column(
                 [
@@ -2557,7 +2648,8 @@ def main(page):
             )
         )
         page.update()
+        # The buttons have been added to the page and the page is displayed on screen by calling the function
     leaderboardpage(page)
 
 if __name__ == "__main__":
-    flet.app(main)
+    flet.app(main) # Creates the GUI
